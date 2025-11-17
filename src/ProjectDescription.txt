@@ -1,0 +1,505 @@
+================================================================================
+                    FITNESS TRACKER - MÔ TÃ DỰ ÁN CHI TIẾT
+================================================================================
+
+I. TỔNG QUAN DỰ ÁN
+================================================================================
+Tên dự án: Fitness Tracker Application
+Công nghệ: WPF (Windows Presentation Foundation) với MVVM Pattern
+Database: MySQL với Entity Framework Core
+Ngôn ngữ: C# (.NET 6.0 hoặc cao hơn)
+
+Mục tiêu:
+- Xây dựng ứng dụng quản lý tập luyện fitness hoàn chỉnh
+- Hỗ trợ AI đề xuất bài tập và dinh dưỡng
+- Theo dõi tiến độ và thống kê chi tiết
+- Giao diện hiện đại, dễ sử dụng
+- Kiến trúc module, dễ bảo trì và mở rộng
+
+
+II. TÍNH NĂNG CHÍNH
+================================================================================
+
+1. QUẢN LÝ NGƯỜI DÙNG
+   - Đăng ký tài khoản mới
+   - Đăng nhập/Đăng xuất
+   - Hồ sơ người dùng (tên, tuổi, cân nặng, chiều cao, giới tính)
+   - Theo dõi thay đổi cân nặng theo thời gian
+
+2. LỰA CHỌN MỤC TIÊU TẬP LUYỆN
+   - Tăng cơ (Muscle Building)
+   - Giảm cân (Weight Loss)
+   - Tăng sức bền (Endurance)
+
+3. LỰA CHỌN MÔI TRƯỜNG TẬP LUYỆN
+   - Tại nhà (Home)
+   - Phòng gym (Gym)
+
+4. AI ĐỀ XUẤT BÀI TẬP
+   - Phân tích mục tiêu và môi trường
+   - Đề xuất danh sách bài tập phù hợp
+   - Gợi ý số set, rep, thời gian nghỉ
+   - Có thể bật/tắt tính năng AI
+   - Sử dụng OpenAI API hoặc local AI model
+
+5. QUẢN LÝ BÀI TẬP (WORKOUT MANAGEMENT)
+   - Tạo workout plan tùy chỉnh
+   - Thêm/sửa/xóa bài tập
+   - Quản lý library bài tập (Exercise Library)
+   - Phân loại theo nhóm cơ (Chest, Back, Legs, Arms, Core, Full Body)
+   - Lưu các bài tập yêu thích
+
+6. ĐỒNG HỒ ĐẾM NGƯỢC TRONG LÚC TẬP
+   - Timer cho mỗi bài tập
+   - Đếm ngược thời gian nghỉ giữa các set
+   - Âm thanh/thông báo khi hết thời gian
+   - Pause/Resume/Reset
+   - Hiển thị số set đã hoàn thành
+
+7. NHẬT KÝ TẬP LUYỆN (WORKOUT LOG)
+   - Ghi lại từng buổi tập
+   - Chi tiết: ngày tập, bài tập, số set, số rep, trọng lượng
+   - Ghi chú cho từng buổi tập
+   - Đánh dấu mức độ khó (Difficulty rating)
+   - Xem lại lịch sử tập luyện
+
+8. AI GỢI Ý DINH DƯỠNG
+   - Phân tích buổi tập vừa hoàn thành
+   - Gợi ý lượng calories cần nạp
+   - Gợi ý bữa ăn sau tập (Post-workout meal)
+   - Tính toán Protein/Carbs/Fat theo mục tiêu
+   - Có thể bật/tắt tính năng
+
+9. BÁO CÁO VÀ THỐNG KÊ
+   - Biểu đồ tiến độ theo thời gian
+   - Tổng số buổi tập trong tuần/tháng
+   - Tổng thời gian tập luyện
+   - Calories đã đốt cháy (ước tính)
+   - Xu hướng tăng/giảm cân nặng
+   - So sánh hiệu suất theo tuần/tháng
+   - Export báo cáo ra PDF/Excel
+
+10. CÀI ĐẶT VÀ TÙY CHỈNH
+    - Chế độ sáng/tối (Light/Dark theme)
+    - Cài đặt thông báo
+    - Đơn vị đo lường (kg/lbs, cm/inch)
+    - Bật/tắt AI Service
+    - Cấu hình API key cho AI
+    - Backup/Restore dữ liệu
+
+
+III. KIẾN TRÚC DỰ ÁN (MVVM PATTERN)
+================================================================================
+
+Cấu trúc thư mục:
+
+FitnessTracker.WPF/
+├── Models/                         # Data models
+│   ├── User.cs
+│   ├── WorkoutPlan.cs
+│   ├── Exercise.cs
+│   ├── WorkoutSession.cs
+│   ├── WorkoutExercise.cs
+│   ├── NutritionSuggestion.cs
+│   ├── ProgressRecord.cs
+│   └── Enums.cs
+│
+├── DataAccess/                     # Entity Framework & Database
+│   ├── FitnessDbContext.cs
+│   ├── Migrations/
+│   └── DatabaseInitializer.cs
+│
+├── Repositories/                   # Repository pattern
+│   ├── Interfaces/
+│   │   ├── IUserRepository.cs
+│   │   ├── IWorkoutRepository.cs
+│   │   ├── IExerciseRepository.cs
+│   │   └── IProgressRepository.cs
+│   ├── UserRepository.cs
+│   ├── WorkoutRepository.cs
+│   ├── ExerciseRepository.cs
+│   └── ProgressRepository.cs
+│
+├── Services/                       # Business logic
+│   ├── Interfaces/
+│   │   ├── IDatabaseService.cs
+│   │   ├── IAIService.cs
+│   │   ├── IWorkoutService.cs
+│   │   └── IStatisticsService.cs
+│   ├── DatabaseService.cs
+│   ├── AIService.cs               # Có thể bật/tắt
+│   ├── WorkoutService.cs
+│   ├── TimerService.cs
+│   ├── StatisticsService.cs
+│   └── ExportService.cs
+│
+├── ViewModels/                     # MVVM ViewModels
+│   ├── Base/
+│   │   └── ViewModelBase.cs       # INotifyPropertyChanged
+│   ├── MainViewModel.cs
+│   ├── LoginViewModel.cs
+│   ├── DashboardViewModel.cs
+│   ├── WorkoutPlanViewModel.cs
+│   ├── WorkoutSessionViewModel.cs
+│   ├── ExerciseLibraryViewModel.cs
+│   ├── WorkoutLogViewModel.cs
+│   ├── StatisticsViewModel.cs
+│   ├── NutritionViewModel.cs
+│   └── SettingsViewModel.cs
+│
+├── Views/                          # XAML Views
+│   ├── MainWindow.xaml
+│   ├── LoginView.xaml
+│   ├── DashboardView.xaml
+│   ├── WorkoutPlanView.xaml
+│   ├── WorkoutSessionView.xaml
+│   ├── ExerciseLibraryView.xaml
+│   ├── WorkoutLogView.xaml
+│   ├── StatisticsView.xaml
+│   ├── NutritionView.xaml
+│   └── SettingsView.xaml
+│
+├── Helpers/                        # Utility classes
+│   ├── RelayCommand.cs            # ICommand implementation
+│   ├── DialogService.cs
+│   ├── NavigationService.cs
+│   └── ValidationHelper.cs
+│
+├── Converters/                     # XAML Value Converters
+│   ├── BoolToVisibilityConverter.cs
+│   ├── EnumToStringConverter.cs
+│   └── DateTimeFormatConverter.cs
+│
+├── Resources/                      # Styles, Colors, Icons
+│   ├── Styles/
+│   │   ├── ButtonStyles.xaml
+│   │   ├── TextBoxStyles.xaml
+│   │   └── Colors.xaml
+│   └── Icons/
+│
+├── Database/                       # Database scripts
+│   ├── schema.sql
+│   ├── seed_data.sql
+│   └── README.md
+│
+├── App.xaml                        # Application entry
+├── App.xaml.cs
+├── appsettings.json               # Configuration
+└── README.md
+
+
+IV. CÔNG NGHỆ SỬ DỤNG
+================================================================================
+
+1. FRAMEWORK & LIBRARIES
+   - .NET 6.0 hoặc .NET 7.0/8.0
+   - WPF (Windows Presentation Foundation)
+   - Entity Framework Core 7.x
+   - MySQL.EntityFrameworkCore
+   - Pomelo.EntityFrameworkCore.MySql (alternative)
+
+2. NUGET PACKAGES CẦN CÀI ĐẶT
+   - Microsoft.EntityFrameworkCore (7.0.0+)
+   - Microsoft.EntityFrameworkCore.Design
+   - Pomelo.EntityFrameworkCore.MySql (7.0.0+)
+   - Microsoft.Extensions.Configuration
+   - Microsoft.Extensions.Configuration.Json
+   - Microsoft.Extensions.DependencyInjection
+   - Newtonsoft.Json (hoặc System.Text.Json)
+   - LiveCharts.Wpf (cho biểu đồ thống kê)
+   - MaterialDesignThemes (cho giao diện đẹp - optional)
+   - RestSharp hoặc HttpClient (cho AI API calls)
+
+3. AI SERVICE
+   - OpenAI API (GPT-3.5 hoặc GPT-4)
+   - Hoặc Azure OpenAI Service
+   - Hoặc local AI model (Ollama, LLaMA)
+   - API Key được lưu trong appsettings.json
+   - Có thể bật/tắt trong Settings
+
+
+V. THIẾT KẾ GIAO DIỆN
+================================================================================
+
+1. MÀU SẮC CHÍNH (COLOR SCHEME)
+   - Primary: Orange (#FF6B35, #F77F00)
+   - Secondary: Green (#06D6A0, #4CAF50)
+   - Background Light: #F5F5F5
+   - Background Dark: #1E1E1E
+   - Text Primary: #212121
+   - Text Secondary: #757575
+   - Accent: #03DAC6
+   - Error: #CF6679
+
+2. FONT CHỮ
+   - Primary: Segoe UI (default Windows)
+   - Headers: Segoe UI Bold
+   - Size: 12-14pt (body), 16-24pt (headers)
+
+3. LAYOUT
+   - Sidebar navigation (trái)
+   - Main content area (giữa)
+   - Info panel (phải - optional)
+   - Top bar: User info, notifications, settings
+
+4. CÁC TRANG CHÍNH
+   a) Login/Register Page
+      - Form đăng nhập
+      - Form đăng ký
+      - Validation
+
+   b) Dashboard
+      - Tổng quan hoạt động
+      - Quick stats
+      - Upcoming workouts
+      - Recent achievements
+
+   c) Workout Plan
+      - Chọn mục tiêu
+      - Chọn môi trường
+      - AI suggestions
+      - Tạo plan tùy chỉnh
+
+   d) Workout Session
+      - Exercise list
+      - Timer countdown
+      - Set/Rep counter
+      - Progress indicator
+
+   e) Exercise Library
+      - Search/Filter
+      - Category tabs
+      - Exercise details
+      - Add to favorites
+
+   f) Workout Log
+      - Calendar view
+      - List view
+      - Detail view
+      - Edit/Delete
+
+   g) Statistics
+      - Charts (Line, Bar, Pie)
+      - Date range selector
+      - Export buttons
+
+   h) Nutrition
+      - AI suggestions
+      - Meal plans
+      - Macros calculator
+
+   i) Settings
+      - Profile edit
+      - Theme toggle
+      - AI settings
+      - Notifications
+
+
+VI. DATABASE SCHEMA
+================================================================================
+
+Xem file: DatabaseSchema.sql
+
+Bảng chính:
+1. Users - Thông tin người dùng
+2. WorkoutPlans - Kế hoạch tập luyện
+3. Exercises - Thư viện bài tập
+4. WorkoutSessions - Buổi tập thực tế
+5. WorkoutExercises - Chi tiết bài tập trong buổi tập
+6. Sets - Chi tiết từng set
+7. ProgressRecords - Theo dõi tiến độ
+8. NutritionSuggestions - Gợi ý dinh dưỡng
+9. Settings - Cài đặt ứng dụng
+
+
+VII. LUỒNG HOẠT ĐỘNG (WORKFLOW)
+================================================================================
+
+1. ĐĂNG NHẬP/ĐĂNG KÝ
+   User → LoginView → LoginViewModel → DatabaseService → MySQL
+   → Validation → MainWindow (Dashboard)
+
+2. TẠO WORKOUT PLAN
+   User chọn Goal + Environment 
+   → WorkoutPlanViewModel 
+   → AIService.GenerateWorkoutPlan() [optional]
+   → DatabaseService.SaveWorkoutPlan()
+   → MySQL
+
+3. BẮT ĐẦU TẬP LUYỆN
+   User chọn Workout Plan 
+   → WorkoutSessionViewModel
+   → Load Exercises
+   → Start Timer
+   → Track Sets/Reps
+   → Save Session → MySQL
+
+4. XEM THỐNG KÊ
+   User → StatisticsView 
+   → StatisticsViewModel.LoadData()
+   → DatabaseService.GetProgressRecords()
+   → Generate Charts
+   → Display
+
+5. NHẬN GỢI Ý DINH DƯỠNG
+   After Workout 
+   → NutritionViewModel
+   → AIService.GenerateNutritionAdvice()
+   → Display Suggestions
+   → Save to Database
+
+
+VIII. YÊU CẦU KỸ THUẬT
+================================================================================
+
+1. SYSTEM REQUIREMENTS
+   - OS: Windows 10/11
+   - RAM: 4GB minimum, 8GB recommended
+   - Storage: 500MB
+   - .NET Runtime 6.0+
+   - MySQL Server 8.0+
+
+2. DEVELOPMENT REQUIREMENTS
+   - Visual Studio 2022 (Community/Professional)
+   - .NET 6.0 SDK hoặc cao hơn
+   - MySQL Workbench (optional)
+   - Git for version control
+
+3. PERFORMANCE
+   - Startup time: < 3 seconds
+   - Database query: < 500ms
+   - AI response: < 5 seconds
+   - Smooth animations (60 FPS)
+
+
+IX. TÍNH NĂNG ĐẶC BIỆT
+================================================================================
+
+1. AI SERVICE - MODULE RIÊNG BIỆT
+   - Interface: IAIService
+   - Implementation: AIService.cs
+   - Có thể inject/remove dễ dàng
+   - Fallback khi AI không available
+   - Settings để bật/tắt
+   - Mock AI cho testing
+
+2. OFFLINE MODE
+   - Tất cả dữ liệu lưu local MySQL
+   - AI cache responses
+   - Sync khi online (future feature)
+
+3. DATA EXPORT
+   - Export to PDF
+   - Export to Excel
+   - Backup database
+   - Share workout plans
+
+4. RESPONSIVE DESIGN
+   - Tự động resize
+   - Adaptive layout
+   - Support nhiều screen sizes
+
+
+X. HƯỚNG DẪN TRIỂN KHAI
+================================================================================
+
+Xem file: WPF_Implementation_Guide.txt
+
+
+XI. KẾ HOẠCH PHÁT TRIỂN
+================================================================================
+
+PHASE 1: Core Features (Tuần 1-2)
+- Setup project structure
+- Database setup
+- Models & Data Access
+- Basic MVVM implementation
+- Login/Register
+
+PHASE 2: Main Features (Tuần 3-4)
+- Workout Plan
+- Exercise Library
+- Workout Session với Timer
+- Basic Statistics
+
+PHASE 3: Advanced Features (Tuần 5-6)
+- AI Integration
+- Nutrition Suggestions
+- Advanced Statistics
+- Export features
+
+PHASE 4: Polish & Testing (Tuần 7-8)
+- UI/UX improvements
+- Bug fixes
+- Performance optimization
+- Documentation
+
+
+XII. TESTING
+================================================================================
+
+1. Unit Tests
+   - Repository tests
+   - Service tests
+   - ViewModel tests
+
+2. Integration Tests
+   - Database operations
+   - API calls
+   - End-to-end workflows
+
+3. UI Tests
+   - Manual testing
+   - User acceptance testing
+
+
+XIII. BẢO MẬT & QUYỀN RIÊNG TƯ
+================================================================================
+
+1. MẬT KHẨU
+   - Hash với BCrypt hoặc PBKDF2
+   - Salt cho mỗi user
+   - Không lưu plaintext
+
+2. API KEYS
+   - Lưu trong appsettings.json
+   - Không commit lên Git
+   - Use user secrets trong development
+
+3. DỮ LIỆU
+   - Local database only
+   - No cloud sync (cho phiên bản 1.0)
+   - User owns their data
+
+
+XIV. TÀI LIỆU THAM KHẢO
+================================================================================
+
+1. Microsoft WPF Documentation
+   https://docs.microsoft.com/wpf
+
+2. Entity Framework Core
+   https://docs.microsoft.com/ef/core
+
+3. MVVM Pattern
+   https://docs.microsoft.com/archive/msdn-magazine/2009/february/patterns-wpf-apps-with-the-model-view-viewmodel-design-pattern
+
+4. MySQL with EF Core
+   https://dev.mysql.com/doc/connector-net/en/connector-net-entityframework-core.html
+
+
+XV. GHI CHÚ QUAN TRỌNG
+================================================================================
+
+- AI Service phải có thể bật/tắt dễ dàng
+- Database local, không phụ thuộc cloud
+- Code phải clean, có comment đầy đủ
+- Follow SOLID principles
+- Async/await cho database operations
+- Error handling đầy đủ
+- Logging cho debugging
+
+
+================================================================================
+                            HẾT TÀI LIỆU
+================================================================================

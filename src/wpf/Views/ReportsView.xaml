@@ -1,0 +1,112 @@
+<UserControl x:Class="FitnessTracker.WPF.Views.ReportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1200">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="40">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
+                <Button Content="←" Command="{Binding GoBackCommand}" Style="{StaticResource OutlineButtonStyle}" Padding="12" Margin="0,0,12,0"/>
+                <TextBlock Text="Báo cáo" FontSize="24" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="Khoảng thời gian" Margin="0,0,0,12"/>
+                    <ListBox ItemsSource="{Binding TimeRanges}" SelectedItem="{Binding SelectedTimeRange}" Background="Transparent" BorderThickness="0">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="1"/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="16,8" Background="#F1F5F9" CornerRadius="8" Margin="0,0,8,0" Cursor="Hand">
+                                    <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Border Grid.Column="0" Grid.Row="0" Style="{StaticResource CardStyle}" Margin="0,0,10,10">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#F97316" Offset="0"/>
+                            <GradientStop Color="#EA580C" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <StackPanel>
+                        <TextBlock Text="🔥 Tổng Calories" FontSize="14" Foreground="White" Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding TotalCalories}" FontSize="32" FontWeight="Bold" Foreground="White"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Grid.Row="0" Style="{StaticResource CardStyle}" Margin="10,0,0,10">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#3B82F6" Offset="0"/>
+                            <GradientStop Color="#2563EB" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <StackPanel>
+                        <TextBlock Text="⏰ Tổng thời gian" FontSize="14" Foreground="White" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding TotalDuration}" FontSize="32" FontWeight="Bold" Foreground="White"/>
+                            <TextBlock Text=" phút" FontSize="16" Foreground="White" VerticalAlignment="Bottom" Margin="4,0,0,4"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="0" Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,10,10,10">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#22C55E" Offset="0"/>
+                            <GradientStop Color="#16A34A" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <StackPanel>
+                        <TextBlock Text="📅 Tổng buổi tập" FontSize="14" Foreground="White" Margin="0,0,0,8"/>
+                        <TextBlock Text="{Binding TotalSessions}" FontSize="32" FontWeight="Bold" Foreground="White"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Grid.Row="1" Style="{StaticResource CardStyle}" Margin="10,10,0,10">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#A855F7" Offset="0"/>
+                            <GradientStop Color="#9333EA" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <StackPanel>
+                        <TextBlock Text="📈 Trung bình/buổi" FontSize="14" Foreground="White" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding AvgCalories, StringFormat={}{0:F0}}" FontSize="32" FontWeight="Bold" Foreground="White"/>
+                            <TextBlock Text=" cal" FontSize="16" Foreground="White" VerticalAlignment="Bottom" Margin="4,0,0,4"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

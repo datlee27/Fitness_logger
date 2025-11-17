@@ -1,0 +1,1506 @@
+================================================================================
+            HƯỚNG DẪN TRIỂN KHAI WPF FITNESS TRACKER CHI TIẾT
+================================================================================
+
+MỤC LỤC:
+I.    Setup môi trường phát triển
+II.   Tạo WPF Project
+III.  Cài đặt NuGet Packages
+IV.   Cấu hình Entity Framework Core với MySQL
+V.    Tạo Models
+VI.   Tạo DbContext và Migrations
+VII.  Tạo Repositories
+VIII. Tạo Services
+IX.   Tạo ViewModels
+X.    Tạo Views (XAML)
+XI.   Cấu hình Dependency Injection
+XII.  Testing và Debug
+XIII. Build và Deploy
+
+================================================================================
+I. SETUP MÔI TRƯỜNG PHÁT TRIỂN
+================================================================================
+
+1. CÀI ĐẶT CÔNG CỤ CẦN THIẾT:
+   □ Visual Studio 2022 (Community/Professional/Enterprise)
+     - Workloads: ".NET desktop development"
+     - Component: "WPF and XAML designer"
+   
+   □ MySQL Server 8.0+ 
+     - Download: https://dev.mysql.com/downloads/mysql/
+     - Hoặc dùng XAMPP/WAMP
+   
+   □ MySQL Workbench (Optional - để quản lý DB)
+     - Download: https://dev.mysql.com/downloads/workbench/
+   
+   □ .NET 6.0 SDK hoặc cao hơn
+     - Kiểm tra: dotnet --version
+
+2. TẠO DATABASE:
+   - Mở MySQL Workbench hoặc MySQL Command Line
+   - Chạy file DatabaseSchema.sql đã cung cấp
+   - Hoặc chạy từng lệnh:
+     ```sql
+     CREATE DATABASE FitnessTrackerDB;
+     USE FitnessTrackerDB;
+     -- (chạy các lệnh CREATE TABLE...)
+     ```
+
+3. TEST KẾT NỐI MYSQL:
+   - Connection String mẫu:
+     Server=localhost;Database=FitnessTrackerDB;User=root;Password=your_password;
+
+
+================================================================================
+II. TẠO WPF PROJECT
+================================================================================
+
+1. MỞ VISUAL STUDIO 2022
+
+2. TẠO NEW PROJECT:
+   File → New → Project → "WPF Application" (C#)
+   - Name: FitnessTracker.WPF
+   - Location: Chọn folder của bạn
+   - Framework: .NET 6.0 (hoặc .NET 7/8)
+   - Click "Create"
+
+3. CẤU TRÚC THƯMỤC BAN ĐẦU:
+   Solution Explorer sẽ có:
+   - App.xaml / App.xaml.cs
+   - MainWindow.xaml / MainWindow.xaml.cs
+   - AssemblyInfo.cs
+
+
+================================================================================
+III. CÀI ĐẶT NUGET PACKAGES
+================================================================================
+
+Cách 1: Dùng Package Manager Console (khuyên dùng)
+Tools → NuGet Package Manager → Package Manager Console
+
+Chạy từng lệnh sau:
+
+```powershell
+# Entity Framework Core
+Install-Package Microsoft.EntityFrameworkCore -Version 7.0.14
+Install-Package Microsoft.EntityFrameworkCore.Design -Version 7.0.14
+Install-Package Pomelo.EntityFrameworkCore.MySql -Version 7.0.0
+
+# Configuration
+Install-Package Microsoft.Extensions.Configuration -Version 7.0.0
+Install-Package Microsoft.Extensions.Configuration.Json -Version 7.0.0
+
+# Dependency Injection
+Install-Package Microsoft.Extensions.DependencyInjection -Version 7.0.0
+
+# JSON
+Install-Package Newtonsoft.Json -Version 13.0.3
+
+# Charts cho Statistics
+Install-Package LiveCharts.Wpf -Version 0.9.7
+
+# Material Design (Optional - để UI đẹp hơn)
+Install-Package MaterialDesignThemes -Version 4.9.0
+Install-Package MaterialDesignColors -Version 2.1.4
+
+# HTTP Client cho AI Service
+Install-Package RestSharp -Version 110.2.0
+```
+
+Cách 2: Dùng NuGet Package Manager GUI
+Right-click vào Project → Manage NuGet Packages → Browse
+Tìm và install từng package trên
+
+
+================================================================================
+IV. CẤU HÌNH ENTITY FRAMEWORK CORE VỚI MYSQL
+================================================================================
+
+1. TẠO FILE appsettings.json:
+   - Right-click vào Project → Add → New Item
+   - Chọn "JSON File"
+   - Name: appsettings.json
+   
+   Nội dung:
+   ```json
+   {
+     "ConnectionStrings": {
+       "DefaultConnection": "Server=localhost;Database=FitnessTrackerDB;User=root;Password=your_password_here;"
+     },
+     "AI": {
+       "Enabled": true,
+       "Provider": "OpenAI",
+       "ApiKey": "your_openai_api_key_here",
+       "Model": "gpt-3.5-turbo"
+     },
+     "App": {
+       "Theme": "Light",
+       "Language": "vi-VN"
+     }
+   }
+   ```
+
+2. CẤU HÌNH appsettings.json COPY TO OUTPUT:
+   - Right-click vào appsettings.json
+   - Properties
+   - "Copy to Output Directory": "Copy if newer"
+
+
+================================================================================
+V. TẠO MODELS
+================================================================================
+
+1. TẠO FOLDER "Models":
+   Right-click Project → Add → New Folder → "Models"
+
+2. TẠO FILE Enums.cs:
+
+```csharp
+// Models/Enums.cs
+namespace FitnessTracker.WPF.Models
+{
+    public enum Gender
+    {
+        Male,
+        Female,
+        Other
+    }
+
+    public enum FitnessGoal
+    {
+        MuscleBuilding,
+        WeightLoss,
+        Endurance
+    }
+
+    public enum PreferredEnvironment
+    {
+        Home,
+        Gym,
+        Both
+    }
+
+    public enum ExerciseCategory
+    {
+        Chest,
+        Back,
+        Legs,
+        Shoulders,
+        Arms,
+        Core,
+        Cardio,
+        FullBody
+    }
+
+    public enum DifficultyLevel
+    {
+        Beginner,
+        Intermediate,
+        Advanced
+    }
+
+    public enum WorkoutSessionStatus
+    {
+        Planned,
+        InProgress,
+        Completed,
+        Skipped
+    }
+
+    public enum ThemeMode
+    {
+        Light,
+        Dark
+    }
+
+    public enum UnitSystem
+    {
+        Metric,
+        Imperial
+    }
+
+    public enum AIRequestType
+    {
+        WorkoutPlan,
+        NutritionAdvice,
+        ExerciseSuggestion
+    }
+}
+```
+
+3. TẠO FILE User.cs:
+
+```csharp
+// Models/User.cs
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace FitnessTracker.WPF.Models
+{
+    [Table("Users")]
+    public class User
+    {
+        [Key]
+        public int UserId { get; set; }
+
+        [Required, MaxLength(50)]
+        public string Username { get; set; }
+
+        [Required, MaxLength(100)]
+        public string Email { get; set; }
+
+        [Required, MaxLength(255)]
+        public string PasswordHash { get; set; }
+
+        [Required, MaxLength(255)]
+        public string PasswordSalt { get; set; }
+
+        [MaxLength(100)]
+        public string FullName { get; set; }
+
+        public DateTime? DateOfBirth { get; set; }
+
+        public Gender Gender { get; set; } = Gender.Other;
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal? Height { get; set; } // cm
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal? Weight { get; set; } // kg
+
+        public FitnessGoal FitnessGoal { get; set; } = FitnessGoal.WeightLoss;
+
+        public PreferredEnvironment PreferredEnvironment { get; set; } = PreferredEnvironment.Home;
+
+        public bool IsAIEnabled { get; set; } = true;
+
+        public UnitSystem PreferredUnit { get; set; } = UnitSystem.Metric;
+
+        public ThemeMode ThemeMode { get; set; } = ThemeMode.Light;
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+        public DateTime? LastLoginAt { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        // Navigation Properties
+        public virtual ICollection<WorkoutPlan> WorkoutPlans { get; set; }
+        public virtual ICollection<WorkoutSession> WorkoutSessions { get; set; }
+        public virtual ICollection<ProgressRecord> ProgressRecords { get; set; }
+    }
+}
+```
+
+4. TẠO FILE Exercise.cs:
+
+```csharp
+// Models/Exercise.cs
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace FitnessTracker.WPF.Models
+{
+    [Table("Exercises")]
+    public class Exercise
+    {
+        [Key]
+        public int ExerciseId { get; set; }
+
+        [Required, MaxLength(100)]
+        public string Name { get; set; }
+
+        public string Description { get; set; }
+
+        public ExerciseCategory Category { get; set; }
+
+        [MaxLength(100)]
+        public string MuscleGroup { get; set; }
+
+        public DifficultyLevel DifficultyLevel { get; set; } = DifficultyLevel.Beginner;
+
+        [MaxLength(255)]
+        public string EquipmentNeeded { get; set; }
+
+        public PreferredEnvironment Environment { get; set; } = PreferredEnvironment.Both;
+
+        public string Instructions { get; set; }
+
+        [MaxLength(500)]
+        public string VideoUrl { get; set; }
+
+        [MaxLength(500)]
+        public string ImageUrl { get; set; }
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal? EstimatedCaloriesPerRep { get; set; }
+
+        public int DefaultSets { get; set; } = 3;
+        public int DefaultReps { get; set; } = 10;
+        public int DefaultRestSeconds { get; set; } = 60;
+
+        public int? CreatedBy { get; set; }
+        public bool IsPublic { get; set; } = true;
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+        // Navigation Properties
+        [ForeignKey("CreatedBy")]
+        public virtual User Creator { get; set; }
+    }
+}
+```
+
+5. TẠO CÁC MODEL KHÁC (tương tự):
+   - WorkoutPlan.cs
+   - WorkoutSession.cs
+   - WorkoutSessionExercise.cs
+   - Set.cs
+   - ProgressRecord.cs
+   - NutritionSuggestion.cs
+   
+   (Chi tiết code cho từng model tương tự như trên, mapping với database schema)
+
+
+================================================================================
+VI. TẠO DBCONTEXT VÀ MIGRATIONS
+================================================================================
+
+1. TẠO FOLDER "DataAccess"
+
+2. TẠO FILE FitnessDbContext.cs:
+
+```csharp
+// DataAccess/FitnessDbContext.cs
+using Microsoft.EntityFrameworkCore;
+using FitnessTracker.WPF.Models;
+
+namespace FitnessTracker.WPF.DataAccess
+{
+    public class FitnessDbContext : DbContext
+    {
+        public FitnessDbContext(DbContextOptions<FitnessDbContext> options)
+            : base(options)
+        {
+        }
+
+        // DbSets
+        public DbSet<User> Users { get; set; }
+        public DbSet<Exercise> Exercises { get; set; }
+        public DbSet<WorkoutPlan> WorkoutPlans { get; set; }
+        public DbSet<WorkoutSession> WorkoutSessions { get; set; }
+        public DbSet<WorkoutSessionExercise> WorkoutSessionExercises { get; set; }
+        public DbSet<Set> Sets { get; set; }
+        public DbSet<ProgressRecord> ProgressRecords { get; set; }
+        public DbSet<NutritionSuggestion> NutritionSuggestions { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // Configure Enums to store as strings
+            modelBuilder.Entity<User>()
+                .Property(u => u.Gender)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.FitnessGoal)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<Exercise>()
+                .Property(e => e.Category)
+                .HasConversion<string>();
+
+            // Configure unique constraints
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Username)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
+            // Configure relationships
+            modelBuilder.Entity<WorkoutPlan>()
+                .HasOne(wp => wp.User)
+                .WithMany(u => u.WorkoutPlans)
+                .HasForeignKey(wp => wp.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Add more configurations as needed
+        }
+    }
+}
+```
+
+3. TẠO MIGRATION (Package Manager Console):
+
+```powershell
+Add-Migration InitialCreate
+Update-Database
+```
+
+Nếu gặp lỗi, kiểm tra:
+- Connection string trong appsettings.json
+- MySQL service đang chạy
+- Database đã được tạo
+
+
+================================================================================
+VII. TẠO REPOSITORIES
+================================================================================
+
+1. TẠO FOLDER "Repositories"
+2. TẠO SUBFOLDER "Repositories/Interfaces"
+
+3. TẠO INTERFACE IUserRepository.cs:
+
+```csharp
+// Repositories/Interfaces/IUserRepository.cs
+using FitnessTracker.WPF.Models;
+
+namespace FitnessTracker.WPF.Repositories.Interfaces
+{
+    public interface IUserRepository
+    {
+        Task<User> GetByIdAsync(int userId);
+        Task<User> GetByUsernameAsync(string username);
+        Task<User> GetByEmailAsync(string email);
+        Task<IEnumerable<User>> GetAllAsync();
+        Task<User> CreateAsync(User user);
+        Task<User> UpdateAsync(User user);
+        Task<bool> DeleteAsync(int userId);
+        Task<bool> ExistsAsync(string username, string email);
+    }
+}
+```
+
+4. TẠO IMPLEMENTATION UserRepository.cs:
+
+```csharp
+// Repositories/UserRepository.cs
+using Microsoft.EntityFrameworkCore;
+using FitnessTracker.WPF.DataAccess;
+using FitnessTracker.WPF.Models;
+using FitnessTracker.WPF.Repositories.Interfaces;
+
+namespace FitnessTracker.WPF.Repositories
+{
+    public class UserRepository : IUserRepository
+    {
+        private readonly FitnessDbContext _context;
+
+        public UserRepository(FitnessDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<User> GetByIdAsync(int userId)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.UserId == userId);
+        }
+
+        public async Task<User> GetByUsernameAsync(string username)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.Username == username);
+        }
+
+        public async Task<User> GetByEmailAsync(string email)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<IEnumerable<User>> GetAllAsync()
+        {
+            return await _context.Users.ToListAsync();
+        }
+
+        public async Task<User> CreateAsync(User user)
+        {
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+            return user;
+        }
+
+        public async Task<User> UpdateAsync(User user)
+        {
+            user.UpdatedAt = DateTime.Now;
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+            return user;
+        }
+
+        public async Task<bool> DeleteAsync(int userId)
+        {
+            var user = await GetByIdAsync(userId);
+            if (user == null) return false;
+
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> ExistsAsync(string username, string email)
+        {
+            return await _context.Users
+                .AnyAsync(u => u.Username == username || u.Email == email);
+        }
+    }
+}
+```
+
+5. TẠO CÁC REPOSITORY KHÁC:
+   - IExerciseRepository.cs / ExerciseRepository.cs
+   - IWorkoutRepository.cs / WorkoutRepository.cs
+   - IProgressRepository.cs / ProgressRepository.cs
+   (Tương tự như UserRepository)
+
+
+================================================================================
+VIII. TẠO SERVICES
+================================================================================
+
+1. TẠO FOLDER "Services"
+2. TẠO SUBFOLDER "Services/Interfaces"
+
+3. TẠO IDatabaseService.cs:
+
+```csharp
+// Services/Interfaces/IDatabaseService.cs
+using FitnessTracker.WPF.Models;
+
+namespace FitnessTracker.WPF.Services.Interfaces
+{
+    public interface IDatabaseService
+    {
+        // User methods
+        Task<User> AuthenticateUserAsync(string username, string password);
+        Task<User> RegisterUserAsync(User user, string password);
+        Task<User> GetUserByIdAsync(int userId);
+        Task<bool> UpdateUserProfileAsync(User user);
+
+        // Exercise methods
+        Task<IEnumerable<Exercise>> GetAllExercisesAsync();
+        Task<IEnumerable<Exercise>> GetExercisesByCategoryAsync(ExerciseCategory category);
+        Task<Exercise> GetExerciseByIdAsync(int exerciseId);
+
+        // Workout Plan methods
+        Task<WorkoutPlan> CreateWorkoutPlanAsync(WorkoutPlan plan);
+        Task<IEnumerable<WorkoutPlan>> GetUserWorkoutPlansAsync(int userId);
+
+        // Workout Session methods
+        Task<WorkoutSession> CreateWorkoutSessionAsync(WorkoutSession session);
+        Task<WorkoutSession> UpdateWorkoutSessionAsync(WorkoutSession session);
+        Task<IEnumerable<WorkoutSession>> GetUserWorkoutHistoryAsync(int userId);
+
+        // Progress methods
+        Task<ProgressRecord> CreateProgressRecordAsync(ProgressRecord record);
+        Task<IEnumerable<ProgressRecord>> GetUserProgressRecordsAsync(int userId);
+
+        // Statistics methods
+        Task<Dictionary<string, object>> GetUserStatisticsAsync(int userId, DateTime startDate, DateTime endDate);
+    }
+}
+```
+
+4. TẠO DatabaseService.cs:
+
+```csharp
+// Services/DatabaseService.cs
+using FitnessTracker.WPF.Models;
+using FitnessTracker.WPF.Repositories.Interfaces;
+using FitnessTracker.WPF.Services.Interfaces;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace FitnessTracker.WPF.Services
+{
+    public class DatabaseService : IDatabaseService
+    {
+        private readonly IUserRepository _userRepository;
+        private readonly IExerciseRepository _exerciseRepository;
+        private readonly IWorkoutRepository _workoutRepository;
+        private readonly IProgressRepository _progressRepository;
+
+        public DatabaseService(
+            IUserRepository userRepository,
+            IExerciseRepository exerciseRepository,
+            IWorkoutRepository workoutRepository,
+            IProgressRepository progressRepository)
+        {
+            _userRepository = userRepository;
+            _exerciseRepository = exerciseRepository;
+            _workoutRepository = workoutRepository;
+            _progressRepository = progressRepository;
+        }
+
+        public async Task<User> AuthenticateUserAsync(string username, string password)
+        {
+            var user = await _userRepository.GetByUsernameAsync(username);
+            if (user == null) return null;
+
+            var hashedPassword = HashPassword(password, user.PasswordSalt);
+            if (hashedPassword != user.PasswordHash) return null;
+
+            user.LastLoginAt = DateTime.Now;
+            await _userRepository.UpdateAsync(user);
+
+            return user;
+        }
+
+        public async Task<User> RegisterUserAsync(User user, string password)
+        {
+            // Check if username or email exists
+            if (await _userRepository.ExistsAsync(user.Username, user.Email))
+            {
+                throw new Exception("Username or email already exists");
+            }
+
+            // Generate salt and hash password
+            user.PasswordSalt = GenerateSalt();
+            user.PasswordHash = HashPassword(password, user.PasswordSalt);
+
+            return await _userRepository.CreateAsync(user);
+        }
+
+        public async Task<User> GetUserByIdAsync(int userId)
+        {
+            return await _userRepository.GetByIdAsync(userId);
+        }
+
+        public async Task<bool> UpdateUserProfileAsync(User user)
+        {
+            var updated = await _userRepository.UpdateAsync(user);
+            return updated != null;
+        }
+
+        // Exercise methods
+        public async Task<IEnumerable<Exercise>> GetAllExercisesAsync()
+        {
+            return await _exerciseRepository.GetAllAsync();
+        }
+
+        public async Task<IEnumerable<Exercise>> GetExercisesByCategoryAsync(ExerciseCategory category)
+        {
+            return await _exerciseRepository.GetByCategoryAsync(category);
+        }
+
+        public async Task<Exercise> GetExerciseByIdAsync(int exerciseId)
+        {
+            return await _exerciseRepository.GetByIdAsync(exerciseId);
+        }
+
+        // Workout Plan methods
+        public async Task<WorkoutPlan> CreateWorkoutPlanAsync(WorkoutPlan plan)
+        {
+            return await _workoutRepository.CreatePlanAsync(plan);
+        }
+
+        public async Task<IEnumerable<WorkoutPlan>> GetUserWorkoutPlansAsync(int userId)
+        {
+            return await _workoutRepository.GetUserPlansAsync(userId);
+        }
+
+        // Workout Session methods
+        public async Task<WorkoutSession> CreateWorkoutSessionAsync(WorkoutSession session)
+        {
+            return await _workoutRepository.CreateSessionAsync(session);
+        }
+
+        public async Task<WorkoutSession> UpdateWorkoutSessionAsync(WorkoutSession session)
+        {
+            return await _workoutRepository.UpdateSessionAsync(session);
+        }
+
+        public async Task<IEnumerable<WorkoutSession>> GetUserWorkoutHistoryAsync(int userId)
+        {
+            return await _workoutRepository.GetUserSessionsAsync(userId);
+        }
+
+        // Progress methods
+        public async Task<ProgressRecord> CreateProgressRecordAsync(ProgressRecord record)
+        {
+            return await _progressRepository.CreateAsync(record);
+        }
+
+        public async Task<IEnumerable<ProgressRecord>> GetUserProgressRecordsAsync(int userId)
+        {
+            return await _progressRepository.GetUserRecordsAsync(userId);
+        }
+
+        // Statistics
+        public async Task<Dictionary<string, object>> GetUserStatisticsAsync(int userId, DateTime startDate, DateTime endDate)
+        {
+            var sessions = await _workoutRepository.GetUserSessionsInRangeAsync(userId, startDate, endDate);
+            
+            return new Dictionary<string, object>
+            {
+                ["TotalSessions"] = sessions.Count(),
+                ["TotalMinutes"] = sessions.Sum(s => s.TotalDurationMinutes ?? 0),
+                ["TotalCalories"] = sessions.Sum(s => s.TotalCaloriesBurned ?? 0),
+                ["AverageDifficulty"] = sessions.Average(s => s.DifficultyRating ?? 0)
+            };
+        }
+
+        // Helper methods for password hashing
+        private string GenerateSalt()
+        {
+            byte[] saltBytes = new byte[32];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(saltBytes);
+            }
+            return Convert.ToBase64String(saltBytes);
+        }
+
+        private string HashPassword(string password, string salt)
+        {
+            using (var sha256 = SHA256.Create())
+            {
+                var saltedPassword = password + salt;
+                var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(saltedPassword));
+                return Convert.ToBase64String(hashBytes);
+            }
+        }
+    }
+}
+```
+
+5. TẠO IAIService.cs (QUAN TRỌNG - Module tách riêng):
+
+```csharp
+// Services/Interfaces/IAIService.cs
+using FitnessTracker.WPF.Models;
+
+namespace FitnessTracker.WPF.Services.Interfaces
+{
+    public interface IAIService
+    {
+        bool IsEnabled { get; set; }
+        Task<string> GenerateWorkoutPlanAsync(FitnessGoal goal, PreferredEnvironment environment, int daysPerWeek);
+        Task<string> GenerateNutritionAdviceAsync(WorkoutSession session, User user);
+        Task<IEnumerable<Exercise>> SuggestExercisesAsync(FitnessGoal goal, PreferredEnvironment environment);
+    }
+}
+```
+
+6. TẠO AIService.cs:
+
+```csharp
+// Services/AIService.cs
+using FitnessTracker.WPF.Models;
+using FitnessTracker.WPF.Services.Interfaces;
+using RestSharp;
+using Newtonsoft.Json;
+using Microsoft.Extensions.Configuration;
+
+namespace FitnessTracker.WPF.Services
+{
+    public class AIService : IAIService
+    {
+        private readonly IConfiguration _configuration;
+        private readonly RestClient _client;
+        private string _apiKey;
+        private string _model;
+
+        public bool IsEnabled { get; set; }
+
+        public AIService(IConfiguration configuration)
+        {
+            _configuration = configuration;
+            IsEnabled = _configuration.GetValue<bool>("AI:Enabled");
+            _apiKey = _configuration.GetValue<string>("AI:ApiKey");
+            _model = _configuration.GetValue<string>("AI:Model");
+            
+            _client = new RestClient("https://api.openai.com/v1");
+        }
+
+        public async Task<string> GenerateWorkoutPlanAsync(
+            FitnessGoal goal, 
+            PreferredEnvironment environment, 
+            int daysPerWeek)
+        {
+            if (!IsEnabled) 
+                return GetFallbackWorkoutPlan(goal, environment, daysPerWeek);
+
+            try
+            {
+                var prompt = $@"Create a {daysPerWeek}-day per week workout plan for someone with goal: {goal} 
+                                training at: {environment}. Include exercise names, sets, and reps.";
+
+                var response = await CallOpenAIAsync(prompt);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                // Log error
+                return GetFallbackWorkoutPlan(goal, environment, daysPerWeek);
+            }
+        }
+
+        public async Task<string> GenerateNutritionAdviceAsync(WorkoutSession session, User user)
+        {
+            if (!IsEnabled)
+                return GetFallbackNutritionAdvice(session, user);
+
+            try
+            {
+                var prompt = $@"User just completed a {session.TotalDurationMinutes} minute workout.
+                                User goal: {user.FitnessGoal}, Weight: {user.Weight}kg, Height: {user.Height}cm.
+                                Provide post-workout nutrition advice including calories and macros.";
+
+                var response = await CallOpenAIAsync(prompt);
+                return response;
+            }
+            catch
+            {
+                return GetFallbackNutritionAdvice(session, user);
+            }
+        }
+
+        public async Task<IEnumerable<Exercise>> SuggestExercisesAsync(
+            FitnessGoal goal, 
+            PreferredEnvironment environment)
+        {
+            // This would query database based on goal and environment
+            // Placeholder implementation
+            return new List<Exercise>();
+        }
+
+        private async Task<string> CallOpenAIAsync(string prompt)
+        {
+            var request = new RestRequest("chat/completions", Method.Post);
+            request.AddHeader("Authorization", $"Bearer {_apiKey}");
+            request.AddHeader("Content-Type", "application/json");
+
+            var body = new
+            {
+                model = _model,
+                messages = new[]
+                {
+                    new { role = "system", content = "You are a fitness and nutrition expert." },
+                    new { role = "user", content = prompt }
+                },
+                max_tokens = 500
+            };
+
+            request.AddJsonBody(body);
+
+            var response = await _client.ExecuteAsync(request);
+            
+            if (response.IsSuccessful)
+            {
+                dynamic result = JsonConvert.DeserializeObject(response.Content);
+                return result.choices[0].message.content.ToString();
+            }
+
+            throw new Exception($"AI API Error: {response.ErrorMessage}");
+        }
+
+        // Fallback methods khi AI không available
+        private string GetFallbackWorkoutPlan(FitnessGoal goal, PreferredEnvironment environment, int days)
+        {
+            return $"Basic {goal} workout plan for {environment} - {days} days/week:\n" +
+                   "Day 1: Upper Body\nDay 2: Lower Body\nDay 3: Core & Cardio";
+        }
+
+        private string GetFallbackNutritionAdvice(WorkoutSession session, User user)
+        {
+            var calories = (session.TotalCaloriesBurned ?? 300) * 1.5;
+            return $"Post-workout nutrition:\n" +
+                   $"- Calories: ~{calories} kcal\n" +
+                   $"- Protein: 30-40g\n" +
+                   $"- Carbs: 50-60g\n" +
+                   $"- Drink plenty of water!";
+        }
+    }
+}
+```
+
+
+================================================================================
+IX. TẠO VIEWMODELS
+================================================================================
+
+1. TẠO FOLDER "ViewModels"
+2. TẠO SUBFOLDER "ViewModels/Base"
+
+3. TẠO ViewModelBase.cs:
+
+```csharp
+// ViewModels/Base/ViewModelBase.cs
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
+namespace FitnessTracker.WPF.ViewModels.Base
+{
+    public class ViewModelBase : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
+        {
+            if (Equals(field, value)) return false;
+            field = value;
+            OnPropertyChanged(propertyName);
+            return true;
+        }
+    }
+}
+```
+
+4. TẠO RelayCommand.cs (trong folder Helpers):
+
+```csharp
+// Helpers/RelayCommand.cs
+using System;
+using System.Windows.Input;
+
+namespace FitnessTracker.WPF.Helpers
+{
+    public class RelayCommand : ICommand
+    {
+        private readonly Action<object> _execute;
+        private readonly Func<object, bool> _canExecute;
+
+        public event EventHandler CanExecuteChanged
+        {
+            add { CommandManager.RequerySuggested += value; }
+            remove { CommandManager.RequerySuggested -= value; }
+        }
+
+        public RelayCommand(Action<object> execute, Func<object, bool> canExecute = null)
+        {
+            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
+            _canExecute = canExecute;
+        }
+
+        public bool CanExecute(object parameter)
+        {
+            return _canExecute == null || _canExecute(parameter);
+        }
+
+        public void Execute(object parameter)
+        {
+            _execute(parameter);
+        }
+    }
+}
+```
+
+5. TẠO LoginViewModel.cs:
+
+```csharp
+// ViewModels/LoginViewModel.cs
+using FitnessTracker.WPF.Helpers;
+using FitnessTracker.WPF.Models;
+using FitnessTracker.WPF.Services.Interfaces;
+using FitnessTracker.WPF.ViewModels.Base;
+using System.Windows;
+using System.Windows.Input;
+
+namespace FitnessTracker.WPF.ViewModels
+{
+    public class LoginViewModel : ViewModelBase
+    {
+        private readonly IDatabaseService _databaseService;
+        private string _username;
+        private string _password;
+        private string _errorMessage;
+
+        public string Username
+        {
+            get => _username;
+            set => SetProperty(ref _username, value);
+        }
+
+        public string Password
+        {
+            get => _password;
+            set => SetProperty(ref _password, value);
+        }
+
+        public string ErrorMessage
+        {
+            get => _errorMessage;
+            set => SetProperty(ref _errorMessage, value);
+        }
+
+        public ICommand LoginCommand { get; }
+        public ICommand RegisterCommand { get; }
+
+        public event Action<User> LoginSuccessful;
+
+        public LoginViewModel(IDatabaseService databaseService)
+        {
+            _databaseService = databaseService;
+            LoginCommand = new RelayCommand(async _ => await LoginAsync(), _ => CanLogin());
+            RegisterCommand = new RelayCommand(_ => NavigateToRegister());
+        }
+
+        private bool CanLogin()
+        {
+            return !string.IsNullOrWhiteSpace(Username) && !string.IsNullOrWhiteSpace(Password);
+        }
+
+        private async Task LoginAsync()
+        {
+            try
+            {
+                ErrorMessage = string.Empty;
+                var user = await _databaseService.AuthenticateUserAsync(Username, Password);
+                
+                if (user != null)
+                {
+                    LoginSuccessful?.Invoke(user);
+                }
+                else
+                {
+                    ErrorMessage = "Invalid username or password";
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Login error: {ex.Message}";
+            }
+        }
+
+        private void NavigateToRegister()
+        {
+            // Navigate to register view
+        }
+    }
+}
+```
+
+6. TẠO CÁC VIEWMODEL KHÁC:
+   - DashboardViewModel.cs
+   - WorkoutPlanViewModel.cs
+   - WorkoutSessionViewModel.cs
+   - ExerciseLibraryViewModel.cs
+   - StatisticsViewModel.cs
+   - SettingsViewModel.cs
+   
+   (Mỗi ViewModel tương tự, kế thừa ViewModelBase, sử dụng Services)
+
+
+================================================================================
+X. TẠO VIEWS (XAML)
+================================================================================
+
+1. TẠO FOLDER "Views"
+
+2. TẠO LoginView.xaml:
+
+```xaml
+<!-- Views/LoginView.xaml -->
+<UserControl x:Class="FitnessTracker.WPF.Views.LoginView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="450" d:DesignWidth="400">
+    <Grid Background="White">
+        <StackPanel VerticalAlignment="Center" Margin="50">
+            <!-- Logo/Title -->
+            <TextBlock Text="FITNESS TRACKER" 
+                      FontSize="28" 
+                      FontWeight="Bold" 
+                      Foreground="#FF6B35"
+                      HorizontalAlignment="Center"
+                      Margin="0,0,0,30"/>
+
+            <!-- Username -->
+            <TextBlock Text="Username" FontSize="14" Margin="0,0,0,5"/>
+            <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                    Height="35"
+                    FontSize="14"
+                    Padding="10,5"
+                    Margin="0,0,0,15"/>
+
+            <!-- Password -->
+            <TextBlock Text="Password" FontSize="14" Margin="0,0,0,5"/>
+            <PasswordBox x:Name="PasswordBox"
+                        Height="35"
+                        FontSize="14"
+                        Padding="10,5"
+                        Margin="0,0,0,5"/>
+
+            <!-- Error Message -->
+            <TextBlock Text="{Binding ErrorMessage}" 
+                      Foreground="Red"
+                      TextWrapping="Wrap"
+                      Margin="0,0,0,15"
+                      Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}"/>
+
+            <!-- Login Button -->
+            <Button Content="LOGIN"
+                   Command="{Binding LoginCommand}"
+                   Height="40"
+                   FontSize="14"
+                   FontWeight="Bold"
+                   Background="#FF6B35"
+                   Foreground="White"
+                   BorderThickness="0"
+                   Cursor="Hand"
+                   Margin="0,0,0,10"/>
+
+            <!-- Register Link -->
+            <TextBlock HorizontalAlignment="Center" Margin="0,10,0,0">
+                <Hyperlink Command="{Binding RegisterCommand}">
+                    Don't have an account? Register here
+                </Hyperlink>
+            </TextBlock>
+        </StackPanel>
+    </Grid>
+</UserControl>
+```
+
+3. LoginView.xaml.cs (Code-behind):
+
+```csharp
+// Views/LoginView.xaml.cs
+using System.Windows.Controls;
+using FitnessTracker.WPF.ViewModels;
+
+namespace FitnessTracker.WPF.Views
+{
+    public partial class LoginView : UserControl
+    {
+        public LoginView()
+        {
+            InitializeComponent();
+        }
+
+        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is LoginViewModel viewModel)
+            {
+                viewModel.Password = PasswordBox.Password;
+            }
+        }
+    }
+}
+```
+
+4. TẠO MainWindow.xaml:
+
+```xaml
+<!-- MainWindow.xaml -->
+<Window x:Class="FitnessTracker.WPF.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Fitness Tracker" 
+        Height="600" 
+        Width="1000"
+        WindowStartupLocation="CenterScreen">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar Navigation -->
+        <Border Grid.Column="0" Background="#2C3E50">
+            <StackPanel>
+                <TextBlock Text="FITNESS" 
+                          FontSize="20" 
+                          FontWeight="Bold"
+                          Foreground="White"
+                          Margin="20,30,20,10"/>
+                
+                <Button Content="Dashboard" Style="{StaticResource NavButtonStyle}"/>
+                <Button Content="Workout Plan" Style="{StaticResource NavButtonStyle}"/>
+                <Button Content="Start Workout" Style="{StaticResource NavButtonStyle}"/>
+                <Button Content="Exercise Library" Style="{StaticResource NavButtonStyle}"/>
+                <Button Content="History" Style="{StaticResource NavButtonStyle}"/>
+                <Button Content="Statistics" Style="{StaticResource NavButtonStyle}"/>
+                <Button Content="Nutrition" Style="{StaticResource NavButtonStyle}"/>
+                <Button Content="Settings" Style="{StaticResource NavButtonStyle}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content Area -->
+        <ContentControl Grid.Column="1" 
+                       x:Name="MainContentControl"
+                       Content="{Binding CurrentView}"/>
+    </Grid>
+</Window>
+```
+
+5. TẠO CÁC VIEW KHÁC:
+   - DashboardView.xaml
+   - WorkoutPlanView.xaml
+   - WorkoutSessionView.xaml
+   - StatisticsView.xaml
+   - etc.
+
+
+================================================================================
+XI. CẤU HÌNH DEPENDENCY INJECTION
+================================================================================
+
+1. SỬA App.xaml.cs:
+
+```csharp
+// App.xaml.cs
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using System.IO;
+using System.Windows;
+using FitnessTracker.WPF.DataAccess;
+using FitnessTracker.WPF.Repositories;
+using FitnessTracker.WPF.Repositories.Interfaces;
+using FitnessTracker.WPF.Services;
+using FitnessTracker.WPF.Services.Interfaces;
+using FitnessTracker.WPF.ViewModels;
+using FitnessTracker.WPF.Views;
+
+namespace FitnessTracker.WPF
+{
+    public partial class App : Application
+    {
+        private ServiceProvider _serviceProvider;
+        public IConfiguration Configuration { get; private set; }
+
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+
+            // Load configuration
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+            Configuration = builder.Build();
+
+            // Setup DI
+            var serviceCollection = new ServiceCollection();
+            ConfigureServices(serviceCollection);
+            _serviceProvider = serviceCollection.BuildServiceProvider();
+
+            // Show main window
+            var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+            mainWindow.Show();
+        }
+
+        private void ConfigureServices(IServiceCollection services)
+        {
+            // Configuration
+            services.AddSingleton(Configuration);
+
+            // DbContext
+            var connectionString = Configuration.GetConnectionString("DefaultConnection");
+            services.AddDbContext<FitnessDbContext>(options =>
+                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+
+            // Repositories
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IExerciseRepository, ExerciseRepository>();
+            services.AddScoped<IWorkoutRepository, WorkoutRepository>();
+            services.AddScoped<IProgressRepository, ProgressRepository>();
+
+            // Services
+            services.AddScoped<IDatabaseService, DatabaseService>();
+            services.AddScoped<IAIService, AIService>();
+
+            // ViewModels
+            services.AddTransient<LoginViewModel>();
+            services.AddTransient<DashboardViewModel>();
+            services.AddTransient<WorkoutPlanViewModel>();
+            services.AddTransient<WorkoutSessionViewModel>();
+            services.AddTransient<StatisticsViewModel>();
+
+            // Views
+            services.AddTransient<MainWindow>();
+            services.AddTransient<LoginView>();
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            _serviceProvider?.Dispose();
+            base.OnExit(e);
+        }
+    }
+}
+```
+
+2. SỬA MainWindow.xaml.cs:
+
+```csharp
+// MainWindow.xaml.cs
+using System.Windows;
+using FitnessTracker.WPF.ViewModels;
+
+namespace FitnessTracker.WPF
+{
+    public partial class MainWindow : Window
+    {
+        private readonly MainViewModel _viewModel;
+
+        public MainWindow(MainViewModel viewModel)
+        {
+            InitializeComponent();
+            _viewModel = viewModel;
+            DataContext = _viewModel;
+        }
+    }
+}
+```
+
+
+================================================================================
+XII. TESTING VÀ DEBUG
+================================================================================
+
+1. KIỂM TRA KẾT NỐI DATABASE:
+   - Chạy app lần đầu
+   - Kiểm tra Console output
+   - Xem có lỗi Entity Framework không
+
+2. TEST LOGIN:
+   - Tạo user test trong database
+   - Thử login
+   - Debug nếu có lỗi
+
+3. TEST CÁC TÍNH NĂNG:
+   - CRUD operations
+   - Navigation
+   - Data binding
+   - AI Service (bật/tắt)
+
+4. DEBUG TIPS:
+   - Đặt breakpoint ở constructor của ViewModels
+   - Kiểm tra DI có inject đúng không
+   - Xem Output window cho EF queries
+   - Dùng Try-Catch và log exceptions
+
+
+================================================================================
+XIII. BUILD VÀ DEPLOY
+================================================================================
+
+1. BUILD PROJECT:
+   - Build → Build Solution (Ctrl+Shift+B)
+   - Kiểm tra Errors và Warnings
+
+2. PUBLISH:
+   - Right-click Project → Publish
+   - Chọn "Folder"
+   - Configure settings
+   - Publish
+
+3. TẠO INSTALLER (Optional):
+   - Dùng WiX Toolset
+   - Hoặc Inno Setup
+   - Hoặc ClickOnce deployment
+
+4. DISTRIBUTE:
+   - Copy folder publish
+   - Bao gồm appsettings.json (nhớ remove API keys)
+   - Hướng dẫn user cài MySQL
+   - Script để tạo database
+
+
+================================================================================
+XIV. CHECKLIST HOÀN THÀNH DỰ ÁN
+================================================================================
+
+□ Setup môi trường (Visual Studio, MySQL, .NET SDK)
+□ Tạo WPF Project
+□ Cài đặt NuGet packages
+□ Tạo appsettings.json với connection string
+□ Chạy DatabaseSchema.sql để tạo DB
+
+□ Tạo tất cả Models theo schema
+□ Tạo FitnessDbContext
+□ Chạy Add-Migration và Update-Database
+□ Verify database có tables
+
+□ Tạo tất cả Repository Interfaces
+□ Implement tất cả Repositories
+□ Test repository methods
+
+□ Tạo IDatabaseService
+□ Implement DatabaseService
+□ Tạo IAIService
+□ Implement AIService với fallback
+□ Test services
+
+□ Tạo ViewModelBase
+□ Tạo RelayCommand
+□ Tạo tất cả ViewModels
+□ Wire up Commands và Properties
+
+□ Tạo tất cả XAML Views
+□ Design UI với styles
+□ Bind ViewModels to Views
+□ Test navigation
+
+□ Configure Dependency Injection trong App.xaml.cs
+□ Test DI hoạt động đúng
+□ Verify tất cả services được inject
+
+□ Test login/register
+□ Test workout plan creation
+□ Test workout session với timer
+□ Test statistics và charts
+□ Test AI features (bật/tắt)
+□ Test export features
+
+□ Fix tất cả bugs
+□ Optimize performance
+□ Add error handling đầy đủ
+□ Write documentation
+□ Build và test publish
+
+
+================================================================================
+XV. TÀI LIỆU THAM KHẢO VÀ GHI CHÚ
+================================================================================
+
+1. Entity Framework Core Docs:
+   https://docs.microsoft.com/en-us/ef/core/
+
+2. WPF MVVM Tutorial:
+   https://docs.microsoft.com/en-us/dotnet/desktop/wpf/
+
+3. Dependency Injection:
+   https://docs.microsoft.com/en-us/dotnet/core/extensions/dependency-injection
+
+4. MySQL with EF Core:
+   https://dev.mysql.com/doc/connector-net/en/
+
+5. OpenAI API:
+   https://platform.openai.com/docs/
+
+LƯU Ý QUAN TRỌNG:
+- AI Service PHẢI có thể tắt được (IsEnabled property)
+- Fallback methods khi AI không khả dụng
+- Async/await cho tất cả DB operations
+- Try-catch và error handling đầy đủ
+- Validate input trước khi save vào DB
+- Hash passwords trước khi lưu
+- Không commit API keys lên Git
+- Test thoroughly trước khi deploy
+
+
+================================================================================
+HẾT HƯỚNG DẪN TRIỂN KHAI
+================================================================================
+
+Good luck với project của bạn! 🚀💪

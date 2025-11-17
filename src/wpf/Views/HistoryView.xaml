@@ -1,0 +1,73 @@
+<UserControl x:Class="FitnessTracker.WPF.Views.HistoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1200">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="40">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
+                <Button Content="←" Command="{Binding GoBackCommand}" Style="{StaticResource OutlineButtonStyle}" Padding="12" Margin="0,0,12,0"/>
+                <TextBlock Text="Nhật ký tập luyện" FontSize="24" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Visibility="{Binding SavedWorkouts.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=0}">
+                <Border Style="{StaticResource CardStyle}" Padding="40" HorizontalAlignment="Center">
+                    <StackPanel>
+                        <TextBlock Text="📖" FontSize="64" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                        <TextBlock Text="Chưa có bài tập nào" FontSize="24" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="Hoàn thành một buổi tập và lưu lại để xem ở đây" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <ListView Grid.Row="1" ItemsSource="{Binding SavedWorkouts}" Background="Transparent" BorderThickness="0" Visibility="{Binding SavedWorkouts.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=1}">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12" Width="1100">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="{Binding Name}" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,12,0"/>
+                                        <Border Background="{StaticResource PrimaryBrush}" Padding="8,4" CornerRadius="4">
+                                            <TextBlock Text="{Binding MuscleGroup}" Foreground="White" FontSize="12"/>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="📅 " Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding Date, StringFormat={}{0:dd/MM/yyyy}}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,16,0"/>
+                                        
+                                        <TextBlock Text="🔥 " Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding TotalCalories}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Text=" cal" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,16,0"/>
+                                        
+                                        <TextBlock Text="⏰ " Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding TotalDuration}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Text=" phút" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button Content="Tập lại" Style="{StaticResource OutlineButtonStyle}" Padding="12,8" Margin="0,0,8,0"/>
+                                    <Button Content="🗑️" Command="{Binding DataContext.DeleteWorkoutCommand, RelativeSource={RelativeSource AncestorType=ListView}}" CommandParameter="{Binding}" Background="{StaticResource DangerBrush}" Foreground="White" Padding="12,8" BorderThickness="0" Cursor="Hand"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Grid>
+    </ScrollViewer>
+</UserControl>
